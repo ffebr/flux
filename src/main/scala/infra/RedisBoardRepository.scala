@@ -7,20 +7,27 @@ import zio.json.DecoderOps
 import zio.redis.Redis
 import model.value
 import java.time.Duration
+import model.BoardError
+import model.BoardNotFound
+import model.StorageError
 
 final class RedisBoardRepository(redis: Redis) extends BoardRepository:
   private val keyPrefix = "board:"
   private def keyFor(id: BoardId): String = s"$keyPrefix${id.value}"
 
-  def get(id: BoardId): IO[Throwable, Option[Board]] =
+  def get(id: BoardId): IO[BoardError, Board] =
     for
-      maybeString <- redis.get(keyFor(id)).returning[String]
-      maybeBoard <- ZIO.foreach(maybeString) { boardJson =>
-        ZIO
-          .fromEither(boardJson.fromJson[Board])
-          .mapError(err => new RuntimeException(s"Ошибка десериализации: $err"))
-      }
-    yield maybeBoard
+      maybeString <- redis
+        .get(keyFor(id))
+        .returning[String]
+        .mapError(err => StorageError(err))
+      boardString <- ZIO
+        .fromOption(maybeString)
+        .orElseFail(BoardNotFound(id))
+      board <- ZIO
+        .fromEither(boardString.fromJson[Board])
+        .mapError(err => StorageError(err))
+    yield board
 
   def save(board: Board): IO[Throwable, Unit] =
     for {

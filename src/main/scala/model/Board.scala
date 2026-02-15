@@ -15,7 +15,6 @@ extension (boardId: BoardId) def value: String = boardId
 
 case class Board(
     id: BoardId,
-    title: String,
     question: String,
     expiresAt: Instant,
     words: Map[Word, WordCount]
@@ -33,15 +32,13 @@ case class Board(
       Right((this.copy(words = newWords), normalizedWord))
 
 object Board:
-  def apply(
-      title: String,
+  def create(
       question: String,
-      expiresAt: Instant
+      ttlSeconds: Long
   ): Board =
     Board(
       id = BoardId.generate(),
-      title = title,
       question = question,
-      expiresAt = expiresAt,
+      expiresAt = Instant.now().plusSeconds(ttlSeconds),
       words = Map.empty[Word, WordCount]
     )
