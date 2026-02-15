@@ -5,8 +5,8 @@ import java.util.UUID
 import scala.annotation.tailrec
 
 object uuidShortCode:
-  def gen(length: Int = 8): BoardId =
-    val hex = UUID.randomUUID().toString.replaceAll("-", "")
+  def gen(length: Int = 8, uuid: UUID): BoardId =
+    val hex = uuid.toString.replaceAll("-", "")
     val num = BigInt(hex, 16)
     val chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
     val base = BigInt(chars.length)

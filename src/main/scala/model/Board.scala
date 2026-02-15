@@ -4,11 +4,12 @@ import utils.uuidShortCode
 import zio.json._
 
 import java.time.Instant
+import java.util.UUID
 
 opaque type BoardId = String
 object BoardId:
   def apply(s: String): BoardId = s
-  def generate(): BoardId = uuidShortCode.gen()
+  def generate(): BoardId = uuidShortCode.gen(uuid = UUID.randomUUID())
   given JsonCodec[BoardId] = JsonCodec[String].transform(BoardId.apply, _.value)
 extension (boardId: BoardId) def value: String = boardId
 

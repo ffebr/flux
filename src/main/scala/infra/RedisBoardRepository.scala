@@ -6,7 +6,7 @@ import zio.json.*
 import zio.json.DecoderOps
 import zio.redis.Redis
 import model.value
-import java.time.Instant
+import java.time.Duration
 
 final class RedisBoardRepository(redis: Redis) extends BoardRepository:
   private val keyPrefix = "board:"
@@ -25,13 +25,11 @@ final class RedisBoardRepository(redis: Redis) extends BoardRepository:
   def save(board: Board): IO[Throwable, Unit] =
     for {
       now <- Clock.instant
-      duration = java.time.Duration.between(now, board.expiresAt)
+      duration = Duration.between(now, board.expiresAt)
       ttl =
-        if (!duration.isNegative && !duration.isZero) {
+        if (!duration.isNegative && !duration.isZero) then
           Some(zio.Duration.fromJava(duration))
-        } else {
-          None
-        }
+        else None
 
       _ <- redis.set(
         key = keyFor(board.id),
