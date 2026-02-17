@@ -1,5 +1,7 @@
 package model
 
+import zio.json.JsonCodec
+
 sealed trait BoardError:
   val message: String
 

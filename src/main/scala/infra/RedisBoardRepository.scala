@@ -1,15 +1,17 @@
 package infra
 
-import model.{Board, BoardId}
+import model.Board
+import model.BoardError
+import model.BoardId
+import model.BoardNotFound
+import model.StorageError
+import model.value
 import zio.*
 import zio.json.*
 import zio.json.DecoderOps
 import zio.redis.Redis
-import model.value
+
 import java.time.Duration
-import model.BoardError
-import model.BoardNotFound
-import model.StorageError
 
 final class RedisBoardRepository(redis: Redis) extends BoardRepository:
   private val keyPrefix = "board:"
@@ -29,7 +31,7 @@ final class RedisBoardRepository(redis: Redis) extends BoardRepository:
         .mapError(err => StorageError(err))
     yield board
 
-  def save(board: Board): IO[Throwable, Unit] =
+  def save(board: Board): IO[BoardError, Unit] =
     for {
       now <- Clock.instant
       duration = Duration.between(now, board.expiresAt)
@@ -38,11 +40,13 @@ final class RedisBoardRepository(redis: Redis) extends BoardRepository:
           Some(zio.Duration.fromJava(duration))
         else None
 
-      _ <- redis.set(
-        key = keyFor(board.id),
-        value = board.toJson,
-        expireTime = ttl
-      )
+      _ <- redis
+        .set(
+          key = keyFor(board.id),
+          value = board.toJson,
+          expireTime = ttl
+        )
+        .mapError(err => StorageError(err))
     } yield ()
 
 object RedisBoardRepository:

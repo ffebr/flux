@@ -1,8 +1,8 @@
 package model
 
 import zio.json.JsonCodec
-import zio.json.JsonFieldEncoder
 import zio.json.JsonFieldDecoder
+import zio.json.JsonFieldEncoder
 
 case class Word(value: String) derives JsonCodec:
   require(!value.isBlank())

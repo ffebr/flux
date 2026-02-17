@@ -1,11 +1,14 @@
 package infra
 
-import model.{BoardEvent, WordAdded}
-import zio.{IO, ZIO, ZLayer}
-import zio.json.*
-import zio.redis.Redis
+import model.BoardEvent
+import model.WordAdded
 import model.value
+import zio.IO
+import zio.ZIO
+import zio.ZLayer
+import zio.json.*
 import zio.json.JsonCodec
+import zio.redis.Redis
 
 trait Publisher:
   def publish(event: BoardEvent): IO[Throwable, Unit]

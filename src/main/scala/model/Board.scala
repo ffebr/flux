@@ -1,7 +1,7 @@
 package model
 
 import utils.uuidShortCode
-import zio.json._
+import zio.json.*
 
 import java.time.Instant
 import java.util.UUID
@@ -34,11 +34,12 @@ case class Board(
 object Board:
   def create(
       question: String,
-      ttlSeconds: Long
+      ttlSeconds: Long,
+      now: Instant
   ): Board =
     Board(
       id = BoardId.generate(),
       question = question,
-      expiresAt = Instant.now().plusSeconds(ttlSeconds),
+      expiresAt = now.plusSeconds(ttlSeconds),
       words = Map.empty[Word, WordCount]
     )

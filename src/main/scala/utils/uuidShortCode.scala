@@ -1,6 +1,7 @@
 package utils
 
 import model.BoardId
+
 import java.util.UUID
 import scala.annotation.tailrec
 

@@ -1,9 +1,10 @@
 // For more information on writing tests, see
+import model.BoardId
+import model.value
 import munit.FunSuite
 import utils.uuidShortCode
-import model.BoardId
+
 import java.util.UUID
-import model.value
 
 class uuidShortCodeSuite extends FunSuite:
   test("gen should produce a predictable short code for a  given UUID") {
