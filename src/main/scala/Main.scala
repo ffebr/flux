@@ -2,6 +2,7 @@ import AppConfig.JsonCodecSupplier
 import api.boardRouter
 import infra.RedisBoardRepository
 import services.BoardServiceImpl
+import zio.*
 import zio.ZIO
 import zio.ZIOAppDefault
 import zio.ZLayer
@@ -13,6 +14,7 @@ import zio.redis.RedisConfig
 import zio.schema.Schema
 import zio.schema.codec.BinaryCodec
 import zio.schema.codec.JsonCodec
+import utils.getEnvVar
 
 object AppConfig:
   val redisPassword: String = sys.env.getOrElse("REDIS_PASSWORD", "2111")
@@ -25,12 +27,13 @@ object AppConfig:
     def get[A: Schema]: BinaryCodec[A] = JsonCodec.schemaBasedBinaryCodec
 
 object Main extends ZIOAppDefault:
-
+  val redisCredCheckLayer =
+    ZIO.fromEither(getEnvVar.checkRedisCreds)
   val redisAuthLayer = ZLayer.fromZIO {
     ZIO.serviceWithZIO[Redis](_.auth(AppConfig.redisPassword))
   }
 
-  override val run = Server
+  override val run = redisCredCheckLayer *> Server
     .serve(boardRouter.api)
     .provide(
       ZLayer.succeed(AppConfig.serverConfig) >>> Server.live,
