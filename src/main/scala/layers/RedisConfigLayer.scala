@@ -7,13 +7,21 @@ import zio.schema.Schema
 import zio.schema.codec.BinaryCodec
 import zio.schema.codec.JsonCodec
 import utils.EnvConfigParser.getVar
+import zio.schema.codec.ProtobufCodec
 
 case class RedisConfigError(message: String)
 case class RedisAuthPack(host: String, port: String, password: String)
 
+object RedisTags:
+  val publisher = Tag[Redis]
+  val consumer = Tag[Redis]
+
 object RedisConfigLayer:
   object JsonCodecSupplier extends CodecSupplier:
     def get[A: Schema]: BinaryCodec[A] = JsonCodec.schemaBasedBinaryCodec
+
+  object RawCodecSupplier extends CodecSupplier:
+    def get[A: Schema]: BinaryCodec[A] = ProtobufCodec.protobufCodec
 
   def getRedisPassword: Either[RedisConfigError, String] =
     getVar("REDIS_PASSWORD").left.map(e => RedisConfigError(e.message))
@@ -48,10 +56,7 @@ object RedisConfigLayer:
     yield redis
   }
 
-  val RedisLayer = (
-    (redisCredsLayer >+> redisConfigLayer ++ ZLayer.succeed(
-      JsonCodecSupplier
-    )) >>> Redis.singleNode
-      ++
-      redisCredsLayer
-  ) >>> redisAuthLayer
+  val layer =
+    (redisCredsLayer >+> redisConfigLayer ++ ZLayer.succeed(RawCodecSupplier))
+      >>> Redis.singleNode ++ redisCredsLayer
+      >+> redisAuthLayer

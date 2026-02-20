@@ -11,6 +11,7 @@ import zio.ZIO
 import zio.http.Response
 import zio.http.Status
 import zio.json.EncoderOps
+import model.BoardEventSourcingError
 
 object ErrorResponseHandler:
   def fromBoardError(err: BoardError) =
@@ -24,6 +25,8 @@ object ErrorResponseHandler:
           Status.InternalServerError,
           ErrorResponse(message, cause.map(_.toString))
         )
+      case BoardEventSourcingError(msg) =>
+        (Status.InternalServerError, ErrorResponse(msg))
 
   def fromSerializationError(err: SerializationError) =
     (Status.UnprocessableEntity, ErrorResponse(err.message))

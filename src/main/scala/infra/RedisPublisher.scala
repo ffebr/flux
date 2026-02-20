@@ -9,17 +9,34 @@ import zio.ZLayer
 import zio.json.*
 import zio.json.JsonCodec
 import zio.redis.Redis
+import model.BoardEventPublishError
+import model.BoardEventErrors
+import java.util.UUID
 
 trait Publisher:
-  def publish(event: BoardEvent): IO[Throwable, Unit]
+  def publish(event: BoardEvent): IO[BoardEventErrors, Unit]
 
 final class RedisPublisher(redis: Redis) extends Publisher:
-  override def publish(event: BoardEvent): IO[Throwable, Unit] =
+  private val streamName = "board-events"
+  override def publish(event: BoardEvent): IO[BoardEventErrors, Unit] =
     event match
       case wa: WordAdded =>
-        val channel = s"board-events:${wa.boardId.value}"
         val jsonPayload = event.toJson
-        redis.publish(channel, jsonPayload).unit.mapError(e => e)
+        for
+          _ <- ZIO.logInfo(jsonPayload.toString())
+          _ <- redis
+            .xAdd(
+              key = streamName,
+              id = "*": String,
+              noMakeStream = false
+            )(
+              "payload" -> jsonPayload
+            )
+            .returning[String]
+            .tapError(e => ZIO.logError(s"REDIS CRASH: ${e.toString()}"))
+            .mapError(e => BoardEventPublishError(e.getMessage()))
+          _ <- ZIO.logInfo(jsonPayload.toString())
+        yield ()
 
 object RedisPublisher:
   val layer: ZLayer[Redis, Nothing, Publisher] =

@@ -11,6 +11,8 @@ case object BoardExpiredError extends BoardError:
 case class BoardNotFound(id: BoardId) extends BoardError:
   val message: String = s"Board ${id.value} not found"
 
+case class BoardEventSourcingError(message: String) extends BoardError
+
 case class StorageError private (message: String, cause: Option[Throwable])
     extends BoardError
 

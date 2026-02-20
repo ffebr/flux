@@ -14,8 +14,11 @@ import services.BoardService
 import zio.*
 import zio.http.*
 import zio.json.*
+import model.BoardEvent
+import streams.BoardEventStream
+import zio.stream.ZStream
 
-object boardRouter:
+object BoardRouter:
   def api: Routes[BoardService, Response] = Routes(
     Method.POST / "boards" -> handler { (req: Request) =>
       handleErrors {
@@ -29,7 +32,7 @@ object boardRouter:
         yield Response.json(BoardResponse.fromBoard(board).toJson)
       }
     },
-    Method.POST / "boards" / string("id") / "words" -> handler {
+    Method.PATCH / "boards" / string("id") / "words" -> handler {
       (id: String, req: Request) =>
         handleErrors {
           for
@@ -39,7 +42,9 @@ object boardRouter:
               .fromEither(body.fromJson[AddWordRequest])
               .mapError(_ => SerializationError())
             board <- boardService.addWord(BoardId(id), Word(data.word))
-          yield Response.json(BoardResponse.fromBoard(board).toJson)
+          yield Response
+            .json( /*BoardResponse.fromBoard(board)*/ board.toJson)
+            .status(Status.Accepted)
         }
     },
     Method.GET / "boards" / string("id") -> handler {
@@ -50,5 +55,19 @@ object boardRouter:
             board <- boardService.get(BoardId(id))
           yield Response.json(BoardResponse.fromBoard(board).toJson)
         }
+    }
+  )
+
+  def sseApi: Routes[Hub[BoardEvent], Nothing] = Routes(
+    Method.GET / "boards" / string("id") / "events" -> handler {
+      (id: String, req: Request) =>
+        for
+          hub <- ZIO.service[Hub[BoardEvent]]
+          stream = BoardEventStream.eventStream(BoardId(id), hub)
+          heartbeat = ZStream
+            .repeat(ServerSentEvent.heartbeat)
+            .schedule(Schedule.spaced(5.seconds))
+          fullStream = stream.merge(heartbeat)
+        yield Response.fromServerSentEvents(fullStream)
     }
   )

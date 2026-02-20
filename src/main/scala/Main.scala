@@ -1,17 +1,25 @@
-import api.boardRouter
+import api.BoardRouter
 import infra.RedisBoardRepository
-import layers.AppConfigLayer.AppConfigLayer
-import layers.RedisConfigLayer.RedisLayer
+import layers.AppConfigLayer
+import layers.RedisConfigLayer
+import layers.RedisConsumerLayer
 import services.BoardServiceImpl
 import zio.ZIOAppDefault
 import zio.http.Server
+import infra.RedisPublisher
+import infra.RedisConsumer
+import zio.ZIO
+import layers.BoardStateLayer
 
 object Main extends ZIOAppDefault:
-  override val run = Server
-    .serve(boardRouter.api)
+  override val run = (ZIO.service[RedisConsumer] *> Server
+    .serve(BoardRouter.api ++ BoardRouter.sseApi))
     .provide(
-      AppConfigLayer,
+      AppConfigLayer.layer,
+      RedisPublisher.layer,
       BoardServiceImpl.layer,
-      RedisLayer,
-      RedisBoardRepository.layer
+      RedisConfigLayer.layer,
+      RedisBoardRepository.layer,
+      BoardStateLayer.layer,
+      RedisConsumerLayer.layer
     )

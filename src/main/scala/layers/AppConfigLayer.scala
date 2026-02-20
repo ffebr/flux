@@ -4,6 +4,7 @@ import utils.EnvConfigParser.getVar
 import scala.util.Try
 import zio.ZLayer
 import zio.http.Server
+import zio.durationInt
 
 case class AppConfigError(message: String)
 
@@ -16,6 +17,7 @@ object AppConfigLayer:
     )
   yield port
 
-  val appConfig = Server.Config.default.port(port.getOrElse(8080))
+  val appConfig =
+    Server.Config.default.port(port.getOrElse(8080)).idleTimeout(5.minutes)
 
-  val AppConfigLayer = ZLayer.succeed(appConfig) >>> Server.live
+  val layer = ZLayer.succeed(appConfig) >>> Server.live

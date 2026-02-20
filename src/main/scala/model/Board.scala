@@ -22,14 +22,19 @@ case class Board(
   def addWord(
       word: Word,
       now: Instant = Instant.now()
-  ): Either[BoardError, (Board, Word)] =
+  ): Either[BoardError, (Board, Map[Word, WordCount])] =
     if now.isAfter(expiresAt) then Left(BoardExpiredError)
     else
       val normalizedWord = word.normalize()
       val newWords = words.get(normalizedWord) match
         case Some(count) => words.updated(normalizedWord, count.increment())
         case None        => words.updated(normalizedWord, WordCount(1))
-      Right((this.copy(words = newWords), normalizedWord))
+      Right(
+        (
+          this.copy(words = newWords),
+          newWords
+        )
+      )
 
 object Board:
   def create(
