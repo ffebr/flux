@@ -12,6 +12,7 @@ import zio.http.Response
 import zio.http.Status
 import zio.json.EncoderOps
 import model.BoardEventSourcingError
+import model.BoardEventErrors
 
 object ErrorResponseHandler:
   def fromBoardError(err: BoardError) =
@@ -31,8 +32,15 @@ object ErrorResponseHandler:
   def fromSerializationError(err: SerializationError) =
     (Status.UnprocessableEntity, ErrorResponse(err.message))
 
+  def fromBoardEventErrors(err: BoardEventErrors) =
+    (Status.NotFound, ErrorResponse(err.message))
+
   def handleErrors[R](
-      effect: ZIO[R, BoardError | SerializationError | Throwable, Response]
+      effect: ZIO[
+        R,
+        BoardError | SerializationError | BoardEventErrors | Throwable,
+        Response
+      ]
   ) =
     effect.catchAll {
       case err: BoardError =>
@@ -42,6 +50,13 @@ object ErrorResponseHandler:
         )
       case err: SerializationError =>
         val (status, body) = fromSerializationError(err)
+        ZIO.succeed(
+          Response
+            .json(body.toJson)
+            .status(status)
+        )
+      case err: BoardEventErrors =>
+        val (status, body) = fromBoardEventErrors(err)
         ZIO.succeed(
           Response
             .json(body.toJson)

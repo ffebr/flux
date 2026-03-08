@@ -14,6 +14,7 @@ import zio.ZLayer
 import java.time.Instant
 import infra.Publisher
 import model.WordAdded
+import model.BoardCreated
 import model.BoardEventSourcingError
 
 trait BoardService:
@@ -23,11 +24,14 @@ trait BoardService:
 
 final class BoardServiceImpl(repo: BoardRepository, publisher: Publisher)
     extends BoardService:
-  def create(question: String, ttl: Long): zio.IO[BoardError, Board] =
+  def create(question: String, ttl: Long): IO[BoardError, Board] =
     for
       now <- Clock.instant
       board = Board.create(question, ttl, now)
       _ <- repo.save(board)
+      _ <- publisher
+        .publish(BoardCreated(board.id))
+        .mapError(e => BoardEventSourcingError(e.message))
     yield board
 
   def get(id: BoardId): IO[BoardError, Board] = repo.get(id)

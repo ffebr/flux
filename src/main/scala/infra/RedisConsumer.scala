@@ -17,17 +17,18 @@ import scala.jdk.DurationConverters._
 import java.util.UUID
 import zio.ZLayer
 import model.WordAdded
+import model.BoardsHubs
+import model.BoardCreated
 
 final class RedisConsumer(
     redis: AsyncRedis,
-    hub: Hub[BoardEvent],
+    hubs: BoardEventBus,
     repo: BoardRepository
 ):
   private val streamName = "board-events"
   private val groupName = "board-group"
   private val consumerId = UUID.randomUUID().toString
 
-  // был RedisError стал Nothing просто так так
   private def ensureGroup() =
     redis
       .xGroupCreate(
@@ -36,14 +37,6 @@ final class RedisConsumer(
         id = "$",
         mkStream = true
       )
-    /* .exit
-      .flatMap {
-        case Exit.Failure(cause) =>
-          if (cause.prettyPrint.contains("BUSYGROUP")) ZIO.unit
-          else ZIO.failCause(cause)
-        case Exit.Success(_) =>
-          ZIO.unit
-      }*/
 
   private def applyEvent(event: BoardEvent) =
     event match
@@ -53,6 +46,8 @@ final class RedisConsumer(
           (updatedBoard, _) <- ZIO.fromEither(board.addWord(e.word))
           _ <- repo.save(updatedBoard)
         yield ()
+      case e: BoardCreated =>
+        hubs.createHub(e.boardId).unit
 
   private def processMsg(msg: StreamEntry[String, String, String]) =
     (for
@@ -63,7 +58,7 @@ final class RedisConsumer(
         .fromEither(payload.fromJson[BoardEvent])
         .mapError(err => BoardEventConsumptionError(s"Failed to decode: $err"))
       _ <- applyEvent(event)
-      _ <- hub.publish(event)
+      _ <- hubs.publish(event)
       _ <- ZIO.logInfo(event.toString())
       _ <- redis.xAck(streamName, groupName, msg.id)
     yield ()).catchAll { err =>
@@ -104,9 +99,9 @@ object RedisConsumer:
     ZLayer.scoped {
       for
         redis <- ZIO.service[AsyncRedis]
-        hub <- ZIO.service[Hub[BoardEvent]]
         repo <- ZIO.service[BoardRepository]
-        consumer = new RedisConsumer(redis, hub, repo)
+        hubs <- ZIO.service[BoardEventBus]
+        consumer = new RedisConsumer(redis, hubs, repo)
         _ <- consumer
           .consumeForever()
           .catchAllCause(c => ZIO.logErrorCause("Consumer died!", c))

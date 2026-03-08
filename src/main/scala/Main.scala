@@ -9,7 +9,7 @@ import zio.http.Server
 import infra.RedisPublisher
 import infra.RedisConsumer
 import zio.ZIO
-import layers.BoardStateLayer
+import infra.BoardEventBus
 
 object Main extends ZIOAppDefault:
   override val run = (ZIO.service[RedisConsumer] *> Server
@@ -20,6 +20,6 @@ object Main extends ZIOAppDefault:
       BoardServiceImpl.layer,
       RedisConfigLayer.layer,
       RedisBoardRepository.layer,
-      BoardStateLayer.layer,
+      BoardEventBus.layer,
       RedisConsumerLayer.layer
     )

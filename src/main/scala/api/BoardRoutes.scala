@@ -17,6 +17,8 @@ import zio.json.*
 import model.BoardEvent
 import streams.BoardEventStream
 import zio.stream.ZStream
+import infra.BoardEventBus
+import model.BoardEventErrors
 
 object BoardRouter:
   def api: Routes[BoardService, Response] = Routes(
@@ -58,16 +60,20 @@ object BoardRouter:
     }
   )
 
-  def sseApi: Routes[Hub[BoardEvent], Nothing] = Routes(
+  def sseApi: Routes[BoardEventBus, Response] = Routes(
     Method.GET / "boards" / string("id") / "events" -> handler {
       (id: String, req: Request) =>
-        for
-          hub <- ZIO.service[Hub[BoardEvent]]
-          stream = BoardEventStream.eventStream(BoardId(id), hub)
-          heartbeat = ZStream
-            .repeat(ServerSentEvent.heartbeat)
-            .schedule(Schedule.spaced(5.seconds))
-          fullStream = stream.merge(heartbeat)
-        yield Response.fromServerSentEvents(fullStream)
+        handleErrors {
+          for
+            bus <- ZIO.service[BoardEventBus]
+            boardId = BoardId(id)
+            _ <- bus.getHub(boardId)
+            stream = BoardEventStream
+              .eventStream(bus.subscribe(boardId))
+            heartbeat = ZStream.succeed(ServerSentEvent.heartbeat) ++
+              ZStream.tick(5.seconds).map(_ => ServerSentEvent.heartbeat)
+            fullStream = stream.merge(heartbeat).catchAll(_ => ZStream.empty)
+          yield Response.fromServerSentEvents(fullStream)
+        }
     }
   )
