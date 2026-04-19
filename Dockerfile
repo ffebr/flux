@@ -4,7 +4,6 @@ FROM sbtscala/scala-sbt:eclipse-temurin-alpine-17.0.15_6_1.12.9_3.8.3 AS builder
 WORKDIR /app
 COPY project/build.properties project/
 COPY project/plugins.sbt project/
-COPY project/metals.sbt project/
 COPY build.sbt .
 
 RUN sbt update
