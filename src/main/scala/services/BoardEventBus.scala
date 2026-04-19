@@ -10,13 +10,12 @@ import model.BoardEventErrors
 import model.BoardEventSubscribeError
 
 sealed trait BoardEventBus:
-  val hubs: BoardsHubs
   def getHub(id: BoardId): IO[BoardEventErrors, BoardHub]
   def createHub(id: BoardId): UIO[BoardHub]
   def subscribe(id: BoardId): ZStream[Any, BoardEventErrors, BoardEvent]
   def publish(event: BoardEvent): UIO[Unit]
 
-class BoardEventBusImpl(val hubs: BoardsHubs, repo: BoardRepository)
+class BoardEventBusImpl(hubs: BoardsHubs, repo: BoardRepository)
     extends BoardEventBus:
   def getHub(id: BoardId): IO[BoardEventErrors, BoardHub] =
     for
@@ -55,5 +54,5 @@ object BoardEventBus:
     for
       repo <- ZIO.service[BoardRepository]
       hubs <- Ref.make(Map.empty[BoardId, BoardHub])
-    yield new BoardEventBusImpl(hubs, repo)
+    yield BoardEventBusImpl(hubs, repo)
   )

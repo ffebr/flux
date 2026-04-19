@@ -12,14 +12,15 @@ import zio.ZIO
 import infra.BoardEventBus
 
 object Main extends ZIOAppDefault:
-  override val run = (ZIO.service[RedisConsumer] *> Server
-    .serve(BoardRouter.api ++ BoardRouter.sseApi))
-    .provide(
-      AppConfigLayer.layer,
-      RedisPublisher.layer,
-      BoardServiceImpl.layer,
-      RedisConfigLayer.layer,
-      RedisBoardRepository.layer,
-      BoardEventBus.layer,
-      RedisConsumerLayer.layer
-    )
+  override val run =
+    (ZIO.service[RedisConsumer] *> Server
+      .serve(BoardRouter.api ++ BoardRouter.sseApi))
+      .provide(
+        AppConfigLayer.layer,
+        RedisPublisher.layer,
+        BoardServiceImpl.layer,
+        RedisConfigLayer.layer,
+        RedisBoardRepository.layer,
+        BoardEventBus.layer,
+        RedisConsumerLayer.layer
+      )

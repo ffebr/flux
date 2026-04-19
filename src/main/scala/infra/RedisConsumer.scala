@@ -95,13 +95,17 @@ final class RedisConsumer(
         .forever
 
 object RedisConsumer:
-  def layer =
+  def layer: ZLayer[
+    AsyncRedis & BoardRepository & BoardEventBus,
+    Nothing,
+    RedisConsumer
+  ] =
     ZLayer.scoped {
       for
         redis <- ZIO.service[AsyncRedis]
         repo <- ZIO.service[BoardRepository]
         hubs <- ZIO.service[BoardEventBus]
-        consumer = new RedisConsumer(redis, hubs, repo)
+        consumer = RedisConsumer(redis, hubs, repo)
         _ <- consumer
           .consumeForever()
           .catchAllCause(c => ZIO.logErrorCause("Consumer died!", c))

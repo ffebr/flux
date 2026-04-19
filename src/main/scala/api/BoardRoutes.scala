@@ -72,7 +72,11 @@ object BoardRouter:
               .eventStream(bus.subscribe(boardId))
             heartbeat = ZStream.succeed(ServerSentEvent.heartbeat) ++
               ZStream.tick(5.seconds).map(_ => ServerSentEvent.heartbeat)
-            fullStream = stream.merge(heartbeat).catchAll(_ => ZStream.empty)
+            fullStream = stream
+              .merge(
+                heartbeat
+              )
+              .catchAll(_ => ZStream.empty)
           yield Response.fromServerSentEvents(fullStream)
         }
     }
