@@ -1,5 +1,5 @@
 # Stage 1: Build the application package with SBT
-FROM sbtscala/scala-sbt:eclipse-temurin-17.0.10_7_1.9.9_3.4.0 AS builder
+FROM sbtscala/scala-sbt:eclipse-temurin-alpine-17.0.15_6_1.12.9_3.8.3 AS builder
 
 WORKDIR /app
 COPY project/build.properties project/
