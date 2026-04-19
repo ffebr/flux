@@ -6,7 +6,7 @@ import layers.RedisConfigError
 case class EnvConfigError(message: String)
 
 object EnvConfigParser:
-  val env = Dotenv.load()
+  val env = Dotenv.configure().ignoreIfMissing().load()
   def getVar(key: String): Either[EnvConfigError, String] =
     Option(env.get(key))
       .filter(_.nonEmpty)
