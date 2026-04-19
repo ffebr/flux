@@ -22,7 +22,9 @@ WORKDIR /app
 COPY --from=builder /app/target/universal/stage /app
 
 # Expose the API port
-EXPOSE 8080
+EXPOSE 
+
+RUN apk add --no-cache bash
 
 # Run the app. bin/flux is created by JavaAppPackaging since project name := "flux" in build.sbt
 CMD ["bin/flux"]
