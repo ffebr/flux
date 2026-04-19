@@ -22,7 +22,7 @@ WORKDIR /app
 COPY --from=builder /app/target/universal/stage /app
 
 # Expose the API port
-EXPOSE 
+EXPOSE 8080
 
 RUN apk add --no-cache bash
 
